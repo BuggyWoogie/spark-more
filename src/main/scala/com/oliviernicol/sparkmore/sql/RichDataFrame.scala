@@ -12,7 +12,7 @@ object RichDataFrame {
 class RichDataFrame(df : Dataset[Row]) extends
     Dataset[Row](df.sparkSession, df.queryExecution.logical, RowEncoder(df.schema)) {
 
-    def createNewColumnWithPrefix(prefix : String): String = {
+    def createNewColumnNameWithPrefix(prefix : String): String = {
         val columns = df.columns.toSet
         var result = prefix
         var index = 2
@@ -33,13 +33,12 @@ class RichDataFrame(df : Dataset[Row]) extends
     def lag(column : String, output : String = null) : DataFrame = {
         // Adding the lag column at the end of the schema with the same type as the input column
         // It is nullable because thest element of the lag column is null ;-)
-        val resultColumn = if(output == null) s"${column}_lag" else column
+        val resultColumn = if(output == null) s"${column}_lag" else output
         val resultType = df.schema(column).dataType
         val newSchema = df.schema.add(StructField(resultColumn, resultType, nullable = true))
 
         // last values of each partition, sorted by partition index
         val lastValues = df
-            .select(functions.col(column) cast "double")
             .rdd
             .map(_.getAs[Any](0))
             .mapPartitionsWithIndex{ case (index, rows) =>
